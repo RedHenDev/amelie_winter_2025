@@ -1,107 +1,190 @@
-// snow.js - Creates sparkling snow particles
+// snow.js - Creates efficient shader-based snow particles
 
 const SnowModule = (() => {
+    const config = {
+        flakeCount: 80000, // Total number of snowflakes
+        spreadRadius: 128, // Horizontal spread
+        heightRange: [-128, 512], // Min and max height
+        fallSpeed: 5, // Units per second
+        wobbleAmount: 15, // Horizontal wobble distance
+        wobbleSpeed: 1 // Wobble frequency
+    };
+    
     const createSnow = () => {
         const snowContainer = document.getElementById('snow-container');
+        const camera = document.getElementById('camera');
         
-        // Create multiple layers of snow particles
-        for (let layer = 0; layer < 3; layer++) {
-            const snowParticleGroup = document.createElement('a-entity');
-            snowParticleGroup.setAttribute('id', `snow-layer-${layer}`);
+        // Create custom shader material for snow
+        const snowShader = createSnowShader();
+        
+        // Generate particle geometry
+        const geometry = createSnowGeometry();
+        
+        // Create mesh with shader
+        const snowMesh = new THREE.Points(geometry, snowShader);
+        snowMesh.frustumCulled = false; // Don't cull particles
+        
+        // Create A-Frame entity to hold the mesh
+        const snowEntity = document.createElement('a-entity');
+        snowEntity.setAttribute('id', 'snow-particles');
+        snowEntity.object3D.add(snowMesh);
+        
+        snowContainer.appendChild(snowEntity);
+        
+        // Start animation loop
+        animateSnow(snowMesh, camera, snowEntity);
+    };
+    
+    const createSnowShader = () => {
+        const vertexShader = `
+            uniform float uTime;
+            uniform float uFallSpeed;
+            uniform float uWobbleAmount;
+            uniform float uWobbleSpeed;
             
-            // Create individual snowflakes
-            const flakeCount = 150;
-            const layerHeight = 30 + (layer * 15);
-            const spreadRadius = 80;
+            attribute float aSize;
+            attribute float aPhase;
+            attribute float aColorPhase;
             
-            for (let i = 0; i < flakeCount; i++) {
-                const flake = createSnowflake(
-                    (Math.random() - 0.5) * spreadRadius,
-                    layerHeight + Math.random() * 20,
-                    (Math.random() - 0.5) * spreadRadius,
-                    layer
-                );
-                snowParticleGroup.appendChild(flake);
+            varying vec4 vColor;
+            varying float vSize;
+            
+            void main() {
+                // Apply wobble based on particle's phase and time
+                float wobble = sin(uTime * uWobbleSpeed + aPhase) * uWobbleAmount;
+                vec3 wobblePos = position;
+                wobblePos.x += wobble;
+                wobblePos.z += cos(uTime * uWobbleSpeed * 0.7 + aPhase) * uWobbleAmount;
+                
+                // Apply falling motion
+                wobblePos.y -= uTime * uFallSpeed;
+                
+                // Wrap Y position to create infinite falling effect
+                wobblePos.y = mod(wobblePos.y - aPhase * 5.0, 140.0) - 70.0;
+                
+                // Shimmering color between light blue and creamy white
+                float colorShimmer = sin(uTime * 0.5 + aColorPhase) * 0.5 + 0.5;
+                
+                // Light blue: #a8d8ff, Creamy white: #fffef0
+                vec3 lightBlue = vec3(0.66, 0.85, 1.0);
+                vec3 creamyWhite = vec3(1.0, 0.998, 0.94);
+                vec3 baseColor = mix(lightBlue, creamyWhite, colorShimmer);
+                
+                // Add brightness variation per flake
+                float brightness = 0.7 + sin(aPhase * 2.0) * 0.3;
+                
+                // Set particle size with variation
+                gl_PointSize = aSize;
+                vSize = aSize;
+                gl_Position = projectionMatrix * modelViewMatrix * vec4(wobblePos, 1.0);
+                
+                vColor = vec4(baseColor * brightness, 0.9);
             }
+        `;
+        
+        const fragmentShader = `
+            varying vec4 vColor;
+            varying float vSize;
             
-            snowContainer.appendChild(snowParticleGroup);
+            void main() {
+                // Create a simple square/circular snowflake
+                vec2 coords = gl_PointCoord - vec2(0.5);
+                float dist = length(coords);
+                
+                // Anti-aliased circle
+                float alpha = smoothstep(0.5, 0.4, dist);
+                
+                gl_FragColor = vec4(vColor.rgb, alpha * vColor.a);
+            }
+        `;
+        
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                uTime: { value: 0 },
+                uFallSpeed: { value: config.fallSpeed },
+                uWobbleAmount: { value: config.wobbleAmount },
+                uWobbleSpeed: { value: config.wobbleSpeed },
+                uTexture: { value: null }
+            },
+            vertexShader: vertexShader,
+            fragmentShader: fragmentShader,
+            blending: THREE.AdditiveBlending,
+            depthTest: true,
+            depthWrite: false,
+            transparent: true
+        });
+        
+        return material;
+    };
+    
+    const createSnowGeometry = () => {
+        const geometry = new THREE.BufferGeometry();
+        
+        const positions = [];
+        const sizes = [];
+        const phases = [];
+        const colorPhases = [];
+        
+        // Generate particle positions
+        for (let i = 0; i < config.flakeCount; i++) {
+            // Random position in spread area
+            const x = (Math.random() - 0.5) * config.spreadRadius;
+            const y = config.heightRange[0] + Math.random() * (config.heightRange[1] - config.heightRange[0]);
+            const z = (Math.random() - 0.5) * config.spreadRadius;
+            
+            positions.push(x, y, z);
+            
+            // Random size variation (0.5 to 2.0)
+            sizes.push(2.0 + Math.random() * 6.0);
+            
+            // Random phase for wobble variation
+            phases.push(Math.random() * Math.PI * 2);
+            
+            // Random phase for color shimmer variation
+            colorPhases.push(Math.random() * Math.PI * 2);
         }
         
-        // Add animation script
-        addSnowAnimation();
+        geometry.setAttribute('position', new THREE.BufferAttribute(new Float32Array(positions), 3));
+        geometry.setAttribute('aSize', new THREE.BufferAttribute(new Float32Array(sizes), 1));
+        geometry.setAttribute('aPhase', new THREE.BufferAttribute(new Float32Array(phases), 1));
+        geometry.setAttribute('aColorPhase', new THREE.BufferAttribute(new Float32Array(colorPhases), 1));
+        
+        return geometry;
     };
     
-    const createSnowflake = (x, y, z, layer) => {
-        const flake = document.createElement('a-entity');
-        flake.setAttribute('position', `${x} ${y} ${z}`);
+    const animateSnow = (snowMesh, camera, snowEntity) => {
+        let startTime = Date.now();
         
-        // Snowflake is a small sphere with emissive material
-        const geometry = document.createElement('a-sphere');
-        geometry.setAttribute('radius', '0.1');
-        geometry.setAttribute('material', 'color: #ffffff; emissive: #4488ff; emissiveIntensity: 0.8');
-        flake.appendChild(geometry);
-        
-        // Store animation data
-        flake.dataset.startX = x;
-        flake.dataset.startY = y;
-        flake.dataset.startZ = z;
-        flake.dataset.time = Math.random() * 1000;
-        flake.dataset.speed = 0.3 + Math.random() * 0.5;
-        flake.dataset.wobble = Math.random() * 2 + 1;
-        
-        return flake;
-    };
-    
-    const addSnowAnimation = () => {
-        const scene = document.querySelector('a-scene');
-        
-        scene.addEventListener('loaded', () => {
-            const animationTick = () => {
-                const snowLayers = document.querySelectorAll('[id^="snow-layer-"]');
-                
-                snowLayers.forEach(layer => {
-                    const snowflakes = layer.querySelectorAll('a-entity');
-                    
-                    snowflakes.forEach(flake => {
-                        const startX = parseFloat(flake.dataset.startX);
-                        const startY = parseFloat(flake.dataset.startY);
-                        const startZ = parseFloat(flake.dataset.startZ);
-                        const time = parseFloat(flake.dataset.time) + 0.01;
-                        const speed = parseFloat(flake.dataset.speed);
-                        const wobble = parseFloat(flake.dataset.wobble);
-                        
-                        const newY = startY - (time * speed);
-                        const wobbleX = Math.sin(time * wobble) * 3;
-                        const wobbleZ = Math.cos(time * wobble * 0.7) * 3;
-                        
-                        // Reset if snow falls below ground
-                        if (newY < -20) {
-                            flake.dataset.time = 0;
-                        } else {
-                            flake.dataset.time = time;
-                            flake.setAttribute('position', `${startX + wobbleX} ${newY} ${startZ + wobbleZ}`);
-                        }
-                    });
-                });
-                
-                requestAnimationFrame(animationTick);
-            };
+        const animate = () => {
+            const elapsed = (Date.now() - startTime) / 1000; // Convert to seconds
+            snowMesh.material.uniforms.uTime.value = elapsed;
             
-            animationTick();
-        });
+            // Lock snow position to camera (translations only, no rotation)
+            if (camera) {
+                const cameraPos = camera.object3D.position;
+                snowEntity.object3D.position.copy(cameraPos);
+            }
+            
+            requestAnimationFrame(animate);
+        };
+        
+        animate();
     };
     
     return {
-        init: createSnow
+        init: createSnow,
+        getConfig: () => config
     };
 })();
 
 // Initialize snow
 document.addEventListener('DOMContentLoaded', () => {
     const scene = document.querySelector('a-scene');
-    scene.addEventListener('loaded', () => {
-        setTimeout(() => {
+    if (scene.hasLoaded) {
+        SnowModule.init();
+    } else {
+        scene.addEventListener('loaded', () => {
             SnowModule.init();
-        }, 200);
-    });
+        });
+    }
 });
