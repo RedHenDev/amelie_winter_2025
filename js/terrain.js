@@ -2,7 +2,12 @@
 
 // ===== CONFIGURATION =====
 const TERRAIN_CONFIG = {
-    heightmapPath: 'assets/heightmap.png',
+    heightmapPath: 'assets/heightmap.png', // Default, will be overridden
+    availableHeightmaps: [
+        'assets/heightmap.png',
+        'AA78_by_Zdzislaw_Beksinski_1978.jpeg',
+        'assets/Missing_Person_Stalenhag.jpeg'
+    ], // List of available heightmaps
     vertexResolution: 128, // Number of vertices per side (64x64, 128x128, etc.) - adjust for detail/performance
     terrainScale: 1000, // World space scale
     heightScale: 90, // Height multiplier from heightmap
@@ -16,6 +21,11 @@ const TERRAIN_CONFIG = {
 const TerrainModule = (() => {
     const createTerrain = () => {
         const terrainContainer = document.getElementById('terrain-container');
+        
+        // Randomly select a heightmap
+        const randomIndex = Math.floor(Math.random() * TERRAIN_CONFIG.availableHeightmaps.length);
+        TERRAIN_CONFIG.heightmapPath = TERRAIN_CONFIG.availableHeightmaps[randomIndex];
+        console.log(`Selected heightmap: ${TERRAIN_CONFIG.heightmapPath}`);
         
         // Create base terrain from heightmap
         const terrain = document.createElement('a-entity');

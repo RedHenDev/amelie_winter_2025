@@ -1,24 +1,23 @@
-// jewels.js - Distributes collectible jewels across the terrain
+// jewels.js - Distributes collectible jewels across the terrain using 2D sprites
 
 const JewelsModule = (() => {
     const config = {
         gridSize: 16, // 16x16 grid across terrain
         jeweelsPerCell: 2, // Average jewels per grid cell
         collectDistance: 2, // Distance to collect jewel
-        rotationSpeed: 0.02, // Rotation speed for visual effect
-        bobSpeed: 0.05, // Bobbing speed
-        bobAmount: 1 // Bobbing height
+        spriteSize: 0.8 // Size of 2D sprite
     };
 
-    // Jewel types - simplified
+    // Jewel types - simplified for sprites
     const jewelTypes = [
-        { color: '#00d4ff', emissive: '#0099ff', size: 0.3, type: 'diamond' },
-        { color: '#00ff44', emissive: '#00cc33', size: 0.25, type: 'emerald' },
-        { color: '#0055ff', emissive: '#0044cc', size: 0.2, type: 'lapis' }
+        { color: '#00d4ff', type: 'diamond' },
+        { color: '#00ff44', type: 'emerald' },
+        { color: '#0055ff', type: 'lapis' }
     ];
 
     let jewels = [];
     let collectedCount = { diamond: 0, emerald: 0, lapis: 0 };
+    let sharedMaterial = null;
 
     const init = () => {
         console.log('Jewels module initialized');
@@ -41,7 +40,10 @@ const JewelsModule = (() => {
         container.setAttribute('id', 'jewels-container');
         jewelContainer.appendChild(container);
 
-        // Grid-based distribution - much simpler
+        // Create shared sprite material
+        sharedMaterial = createSpriteMaterial();
+
+        // Grid-based distribution
         for (let gx = 0; gx < config.gridSize; gx++) {
             for (let gz = 0; gz < config.gridSize; gz++) {
                 // Cell center
@@ -60,7 +62,7 @@ const JewelsModule = (() => {
                     if (terrainHeight !== null) {
                         // Pick random jewel type
                         const jewelType = jewelTypes[Math.floor(Math.random() * jewelTypes.length)];
-                        const y = terrainHeight + 2; // Fixed offset above terrain
+                        const y = terrainHeight + 2;
                         
                         createJewel(jewelType, x, y, z, container);
                     }
@@ -71,17 +73,47 @@ const JewelsModule = (() => {
         console.log(`Jewels distributed: ${jewels.length} total`);
     };
 
+    const createSpriteMaterial = () => {
+        return new THREE.ShaderMaterial({
+            uniforms: {
+                spriteColor: { value: new THREE.Color('#ffffff') }
+            },
+            vertexShader: `
+                varying vec2 vUv;
+                
+                void main() {
+                    vUv = uv;
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform vec3 spriteColor;
+                varying vec2 vUv;
+                
+                void main() {
+                    // Create diamond shape
+                    vec2 center = vUv - 0.5;
+                    float dist = abs(center.x) + abs(center.y);
+                    
+                    if (dist > 0.5) {
+                        discard;
+                    }
+                    
+                    // Add glow
+                    float glow = 1.0 - dist;
+                    gl_FragColor = vec4(spriteColor, glow);
+                }
+            `,
+            transparent: true,
+            side: THREE.DoubleSide
+        });
+    };
+
     const createJewel = (jewelType, x, y, z, container) => {
         const jewel = {
             type: jewelType.type,
             position: new THREE.Vector3(x, y, z),
             baseY: y,
-            rotation: new THREE.Euler(Math.random() * Math.PI, Math.random() * Math.PI, Math.random() * Math.PI),
-            rotationSpeed: new THREE.Vector3(
-                (Math.random() - 0.5) * config.rotationSpeed,
-                (Math.random() - 0.5) * config.rotationSpeed,
-                (Math.random() - 0.5) * config.rotationSpeed
-            ),
             time: Math.random() * Math.PI * 2,
             collected: false,
             entity: null,
@@ -91,15 +123,10 @@ const JewelsModule = (() => {
         const entity = document.createElement('a-entity');
         entity.setAttribute('position', `${x} ${y} ${z}`);
 
-        // Create geometry
-        const geometry = new THREE.OctahedronGeometry(jewelType.size, 0);
-        const material = new THREE.MeshStandardMaterial({
-            color: new THREE.Color(jewelType.color),
-            emissive: new THREE.Color(jewelType.emissive),
-            emissiveIntensity: 0.8,
-            metalness: 0.6,
-            roughness: 0.2
-        });
+        // Create simple quad sprite
+        const geometry = new THREE.PlaneGeometry(config.spriteSize, config.spriteSize);
+        const material = sharedMaterial.clone();
+        material.uniforms.spriteColor.value = new THREE.Color(jewelType.color);
 
         const mesh = new THREE.Mesh(geometry, material);
         entity.object3D.add(mesh);
@@ -137,18 +164,16 @@ const JewelsModule = (() => {
             const cameraPos = camera.object3D.position;
             const now = Date.now();
 
-            // Update animations every frame, collection check every 100ms
+            // Update animations and collection check
             jewels.forEach(jewel => {
                 if (!jewel.collected && jewel.mesh) {
-                    // Rotate
-                    jewel.rotation.x += jewel.rotationSpeed.x;
-                    jewel.rotation.y += jewel.rotationSpeed.y;
-                    jewel.rotation.z += jewel.rotationSpeed.z;
-                    jewel.mesh.rotation.copy(jewel.rotation);
+                    // Bob animation
+                    jewel.time += 0.05;
+                    const bobY = jewel.baseY + Math.sin(jewel.time) * 0.5;
+                    jewel.entity.object3D.position.y = bobY;
 
-                    // Bob
-                    jewel.time += config.bobSpeed;
-                    jewel.entity.object3D.position.y = jewel.baseY + Math.sin(jewel.time) * config.bobAmount;
+                    // Billboard effect - always face camera
+                    jewel.mesh.lookAt(cameraPos);
 
                     // Collection check (throttled)
                     if (now - lastCheckTime > 100) {
@@ -196,22 +221,6 @@ const JewelsModule = (() => {
         getConfig: () => config
     };
 })();
-
-// Initialize jewels when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    const scene = document.querySelector('a-scene');
-    if (scene.hasLoaded) {
-        setTimeout(() => {
-            JewelsModule.init();
-        }, 1000);
-    } else {
-        scene.addEventListener('loaded', () => {
-            setTimeout(() => {
-                JewelsModule.init();
-            }, 1000);
-        });
-    }
-});
 
 // Initialize jewels when DOM is ready
 document.addEventListener('DOMContentLoaded', () => {

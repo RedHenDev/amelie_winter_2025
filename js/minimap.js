@@ -1,8 +1,7 @@
-// minimap.js - Displays a minimap using the heightmap texture
+// minimap.js - Displays a minimap using the current terrain heightmap
 
 const MinimapModule = (() => {
     const config = {
-        heightmapPath: 'assets/heightmap.png',
         size: 256, // Minimap size in pixels
         position: { x: 'right', y: 'top' },
         margin: 10, // Pixels from edge
@@ -18,6 +17,16 @@ const MinimapModule = (() => {
     };
     
     const createMinimap = () => {
+        // Wait for terrain to be initialized so we can get the selected heightmap
+        const checkTerrainInterval = setInterval(() => {
+            if (TERRAIN_CONFIG && TERRAIN_CONFIG.heightmapPath) {
+                clearInterval(checkTerrainInterval);
+                createMinimapCanvas(TERRAIN_CONFIG.heightmapPath);
+            }
+        }, 100);
+    };
+    
+    const createMinimapCanvas = (heightmapPath) => {
         // Create canvas for minimap
         const canvas = document.createElement('canvas');
         canvas.id = 'minimap';
@@ -26,7 +35,7 @@ const MinimapModule = (() => {
         
         const ctx = canvas.getContext('2d');
         
-        // Load heightmap image
+        // Load the selected heightmap image
         const img = new Image();
         img.crossOrigin = 'anonymous';
         
@@ -44,10 +53,10 @@ const MinimapModule = (() => {
         };
         
         img.onerror = () => {
-            console.warn('Heightmap not found, minimap will not display');
+            console.warn('Heightmap not found at ' + heightmapPath + ', minimap will not display');
         };
         
-        img.src = config.heightmapPath;
+        img.src = heightmapPath;
         
         // Style the canvas
         canvas.style.position = 'fixed';
