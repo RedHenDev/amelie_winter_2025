@@ -87,14 +87,28 @@ const SnowModule = (() => {
             varying float vSize;
             
             void main() {
-                // Create a simple square/circular snowflake
+                // Create a square snowflake with outline
                 vec2 coords = gl_PointCoord - vec2(0.5);
-                float dist = length(coords);
                 
-                // Anti-aliased circle
-                float alpha = smoothstep(0.5, 0.4, dist);
+                // Square shape - use max for sharp corners
+                float dist = max(abs(coords.x), abs(coords.y));
                 
-                gl_FragColor = vec4(vColor.rgb, alpha * vColor.a);
+                // Outline thickness
+                float outlineThickness = 0.1;
+                
+                // Create filled square
+                float square = step(dist, 0.5);
+                
+                // Create outline (only on edges)
+                float outline = step(0.5 - outlineThickness, dist) * square;
+                
+                // Combine: outline is black, fill is the color
+                vec3 finalColor = mix(vColor.rgb, vec3(0.0, 0.0, 0.0), outline);
+                
+                // Alpha: full inside the square, fade at edges
+                float alpha = square * vColor.a;
+                
+                gl_FragColor = vec4(finalColor, alpha);
             }
         `;
         

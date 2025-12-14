@@ -119,13 +119,60 @@ const TerrainModule = (() => {
         geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
         geometry.computeVertexNormals();
         
-        // Create material with vertex colors
-        const material = new THREE.MeshStandardMaterial({
-            vertexColors: true,
-            metalness: TERRAIN_CONFIG.metalness,
-            roughness: TERRAIN_CONFIG.roughness,
-            side: THREE.DoubleSide,
-            shadowMap: { enabled: true }
+        // Create material with vertex colors and snow accumulation
+        const material = new THREE.ShaderMaterial({
+            uniforms: {
+                snowLevel: { value: 0.9 }, // 0-1, controls how much snow covers terrain
+                snowColor: { value: new THREE.Color('#ffffff') },
+                snowIntensity: { value: 0.8 } // 0-1, blending intensity
+            },
+            vertexShader: `
+                varying vec3 vColor;
+                varying vec3 vNormal;
+                varying float vHeight;
+                
+                attribute vec3 color;
+                
+                void main() {
+                    vColor = color;
+                    vNormal = normalize(normalMatrix * normal);
+                    vHeight = position.y;
+                    
+                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+                }
+            `,
+            fragmentShader: `
+                uniform float snowLevel;
+                uniform vec3 snowColor;
+                uniform float snowIntensity;
+                
+                varying vec3 vColor;
+                varying vec3 vNormal;
+                varying float vHeight;
+                
+                void main() {
+                    // Surface normal - flatter surfaces get more snow
+                    float flatness = dot(vNormal, vec3(0.0, 1.0, 0.0));
+                    flatness = max(0.0, flatness); // Only top surfaces
+                    
+                    // Height-based snow accumulation - higher = more snow
+                    float heightInfluence = vHeight / 90.0; // Normalize by heightScale
+                    heightInfluence = clamp(heightInfluence, 0.0, 1.0);
+                    
+                    // Combine flatness and height for snow coverage
+                    float snowCoverage = flatness * 0.7 + heightInfluence * 0.3;
+                    snowCoverage = clamp(snowCoverage, 0.0, 1.0);
+                    
+                    // Apply snowLevel to modulate total snow
+                    float snowAmount = snowCoverage * snowLevel;
+                    
+                    // Blend terrain color with snow color
+                    vec3 finalColor = mix(vColor, snowColor, snowAmount * snowIntensity);
+                    
+                    gl_FragColor = vec4(finalColor, 1.0);
+                }
+            `,
+            side: THREE.DoubleSide
         });
         
         // Create mesh

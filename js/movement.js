@@ -14,7 +14,8 @@ const MovementModule = (() => {
     
     const config = {
         moveSpeed: 0.25, // Units per frame - increased for better control
-        acceleration: 1.2 // Multiplier for holding keys
+        acceleration: 1.2, // Multiplier for holding keys
+        friction: 0.85 // Friction coefficient - how much velocity is retained each frame
     };
     
     const init = () => {
@@ -52,6 +53,9 @@ const MovementModule = (() => {
     const startMovementLoop = () => {
         const camera = document.getElementById('camera');
         
+        // Velocity vectors for smooth movement with friction
+        let velocity = new THREE.Vector3(0, 0, 0);
+        
         const movementTick = () => {
             if (!camera) {
                 requestAnimationFrame(movementTick);
@@ -65,7 +69,7 @@ const MovementModule = (() => {
             const forward = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraRot.y);
             const right = new THREE.Vector3(1, 0, 0).applyAxisAngle(new THREE.Vector3(0, 1, 0), cameraRot.y);
             
-            // Calculate movement direction
+            // Calculate desired movement direction from input
             let moveDir = new THREE.Vector3();
             
             // WASD movement
@@ -79,12 +83,20 @@ const MovementModule = (() => {
                 moveDir.normalize();
                 moveDir.multiplyScalar(config.moveSpeed * config.acceleration);
                 
-                // Apply movement - only horizontal (terrain physics handles vertical)
-                cameraPos.x += moveDir.x;
-                cameraPos.z += moveDir.z;
-                
-                camera.object3D.position.copy(cameraPos);
+                // Apply input to velocity
+                velocity.x = moveDir.x;
+                velocity.z = moveDir.z;
+            } else {
+                // No input - apply friction to bring velocity to zero
+                velocity.x *= config.friction || 0.85;
+                velocity.z *= config.friction || 0.85;
             }
+            
+            // Apply velocity to camera position - only horizontal (terrain physics handles vertical)
+            cameraPos.x += velocity.x;
+            cameraPos.z += velocity.z;
+            
+            camera.object3D.position.copy(cameraPos);
             
             requestAnimationFrame(movementTick);
         };
@@ -94,7 +106,11 @@ const MovementModule = (() => {
     
     return {
         init: init,
-        getConfig: () => config
+        getConfig: () => config,
+        setFrictionMultiplier: (multiplier) => {
+            // Temporarily reduce friction based on terrain
+            config.friction = 0.85 * multiplier;
+        }
     };
 })();
 

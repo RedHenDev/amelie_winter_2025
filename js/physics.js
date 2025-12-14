@@ -5,8 +5,8 @@ const PHYSICS_CONFIG = {
     friction: 0.85, // Friction coefficient (0-1, higher = more friction)
     maxClimbAngle: 30, // Maximum angle player can climb (degrees) - BLOCKS movement above this
     slideThreshold: 25, // Angle above which player slides (degrees)
-    slideAcceleration: 0.8, // How fast player accelerates while sliding
-    slideMaxSpeed: 20, // Maximum sliding speed
+    slideAcceleration: 2.0, // How fast player accelerates while sliding (increased from 0.8)
+    slideMaxSpeed: 35, // Maximum sliding speed (increased from 20)
     raycastDistance: 100, // Distance to raycast for terrain
     checkInterval: 0.016, // Physics update interval (60fps)
     sampleDistance: 2.5 // Distance to sample terrain ahead
@@ -45,7 +45,7 @@ const PhysicsModule = (() => {
     
     const startPhysicsLoop = () => {
         const camera = document.getElementById('camera');
-        const scene = document.querySelector('a-scene');
+        const movementModule = window.MovementModule; // Get reference to movement module
         
         const physicsUpdate = () => {
             if (!terrainMesh || !camera) {
@@ -55,10 +55,6 @@ const PhysicsModule = (() => {
             
             const cameraPos = camera.object3D.position.clone();
             
-            // Calculate input velocity from camera movement
-            const deltaPos = new THREE.Vector3().subVectors(cameraPos, lastCameraPos);
-            inputVelocity.copy(deltaPos).multiplyScalar(60); // Convert to per-second velocity
-            
             const terrainHeight = getTerrainHeightAt(cameraPos.x, cameraPos.z);
             const desiredTerrainHeight = terrainHeight !== null ? terrainHeight + TERRAIN_CONFIG.playerHeight : null;
             
@@ -66,47 +62,50 @@ const PhysicsModule = (() => {
             const isAboveTerrain = desiredTerrainHeight === null || cameraPos.y > desiredTerrainHeight + 0.5;
             
             if (!isAboveTerrain && terrainHeight !== null) {
-                // Player is on terrain - apply friction physics
-                // Get slope direction first
-                slopeDirection = getSlopeDirection(cameraPos.x, cameraPos.z, inputVelocity);
-                
-                // Calculate slope angle in direction of movement
-                const slopeAngle = calculateSlopeAngle(cameraPos.x, cameraPos.z, inputVelocity);
+                // Player is on terrain - calculate and apply slope physics
+                const slopeAngle = calculateSlopeAngle(cameraPos.x, cameraPos.z);
                 currentSlopeAngle = slopeAngle;
+                slopeDirection = getSlopeDirection(cameraPos.x, cameraPos.z);
                 
-                // Determine if climbing or descending based on slope direction
-                const isClimbing = slopeDirection.y < 0; // Positive slope ahead
-                const isDescending = slopeDirection.y > 0; // Negative slope ahead
+                // Determine if climbing or descending
+                const isClimbing = slopeDirection.y > 0; // Positive Y slope = going uphill (inverse of before)
+                const isDescending = slopeDirection.y < 0; // Negative Y slope = going downhill (inverse of before)
                 const onSteepSlope = slopeAngle > PHYSICS_CONFIG.slideThreshold;
                 const tooSteepToClimb = isClimbing && slopeAngle > PHYSICS_CONFIG.maxClimbAngle;
                 
+                // Modify movement friction based on terrain
+                let frictionMultiplier = 1.0;
+                
                 if (tooSteepToClimb) {
                     // Block movement up the slope entirely
-                    inputVelocity.x *= 0.05; // Reduce to near zero
-                    inputVelocity.z *= 0.05;
+                    frictionMultiplier = 0.05; // Nearly complete stop
                 } else if (onSteepSlope && isDescending) {
-                    // Player is on steep downward slope - apply sliding physics
-                    applySlidingPhysics(slopeDirection);
+                    // Steep downslope - add sliding acceleration
+                    frictionMultiplier = 0.80; // Less friction, allow sliding
+                    // Add acceleration down slope
+                    const slideForce = slopeDirection.multiplyScalar(PHYSICS_CONFIG.slideAcceleration);
+                    cameraPos.x += slideForce.x;
+                    cameraPos.z += slideForce.z;
                 } else if (isClimbing && slopeAngle > 5) {
-                    // Player is climbing gentler slope - apply friction to resist
-                    applyClimbFriction(inputVelocity);
+                    // Climbing slope - high friction resistance
+                    frictionMultiplier = 0.15; // Very hard to climb
                 } else if (isDescending && slopeAngle > 3) {
-                    // Player is descending - allow gentle slide
-                    applyDescentPhysics(slopeDirection);
+                    // Gentle descent
+                    frictionMultiplier = 0.90; // Slight reduction
                 } else {
-                    // Flat terrain - normal friction
-                    applyFlatFriction(inputVelocity);
+                    // Flat terrain
+                    frictionMultiplier = 1.0;
                 }
                 
-                // Apply the input velocity to camera position
-                cameraPos.x += inputVelocity.x * 0.016;
-                cameraPos.z += inputVelocity.z * 0.016;
+                // Apply friction multiplier to movement module
+                if (movementModule && movementModule.setFrictionMultiplier) {
+                    movementModule.setFrictionMultiplier(frictionMultiplier);
+                }
                 
                 // Keep player above terrain
                 cameraPos.y = desiredTerrainHeight;
                 
                 camera.object3D.position.copy(cameraPos);
-                lastCameraPos.copy(cameraPos);
                 isOnTerrain = true;
                 fallingVelocity = 0;
             } else {
@@ -120,10 +119,6 @@ const PhysicsModule = (() => {
                 const maxFallSpeed = 50;
                 fallingVelocity = Math.min(fallingVelocity, maxFallSpeed);
                 
-                // Apply horizontal movement (reduced while falling)
-                cameraPos.x += inputVelocity.x * 0.016 * 0.5;
-                cameraPos.z += inputVelocity.z * 0.016 * 0.5;
-                
                 // Apply vertical gravity
                 cameraPos.y -= fallingVelocity * 0.016;
                 
@@ -136,7 +131,6 @@ const PhysicsModule = (() => {
                 }
                 
                 camera.object3D.position.copy(cameraPos);
-                lastCameraPos.copy(cameraPos);
             }
             
             requestAnimationFrame(physicsUpdate);
@@ -173,7 +167,7 @@ const PhysicsModule = (() => {
         
         // Sample ahead in movement direction
         let height2 = null;
-        const movementLength = Math.sqrt(movementDir.x ** 2 + movementDir.z ** 2);
+        const movementLength = movementDir ? Math.sqrt(movementDir.x ** 2 + movementDir.z ** 2) : 0;
         
         if (movementLength > 0.001) {
             // Move in actual direction of input
@@ -205,7 +199,7 @@ const PhysicsModule = (() => {
         
         // Sample ahead in movement direction
         let height2 = null;
-        const movementLength = Math.sqrt(movementDir.x ** 2 + movementDir.z ** 2);
+        const movementLength = movementDir ? Math.sqrt(movementDir.x ** 2 + movementDir.z ** 2) : 0;
         
         if (movementLength > 0.001) {
             // Sample in direction of actual movement
@@ -232,7 +226,7 @@ const PhysicsModule = (() => {
     
     const applyClimbFriction = (inputVel) => {
         // Very high friction when climbing - significantly reduces movement
-        const frictionFactor = 0.3; // Only 30% of velocity remains per frame
+        const frictionFactor = 0.15; // Only 15% of velocity remains per frame (was 30%)
         inputVelocity.x *= frictionFactor;
         inputVelocity.z *= frictionFactor;
     };
@@ -263,9 +257,9 @@ const PhysicsModule = (() => {
             inputVelocity.z *= scale;
         }
         
-        // Apply some friction even while sliding (drag)
-        inputVelocity.x *= 0.95;
-        inputVelocity.z *= 0.95;
+        // Apply drag friction even while sliding (reduced from 0.95 to 0.90)
+        inputVelocity.x *= 0.90;
+        inputVelocity.z *= 0.90;
     };
     
     const applyDescentPhysics = (slopeDirection, cameraPos) => {
