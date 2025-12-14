@@ -21,6 +21,19 @@
             border-radius: 5px;
             font-size: 14px;
             z-index: 10;
+            display: none; /* Hidden by default */
+        }
+        #jewel-stats {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 10;
+            font-weight: bold;
         }
     </style>
 </head>
@@ -64,6 +77,10 @@
         <!-- <p>Explore caves and tunnels</p> -->
     </div>
 
+    <div id="jewel-stats">
+        💎 0 | 💚 0 | 💙 0
+    </div>
+
     <!-- Module scripts -->
     <script src="js/terrain.js"></script>
     <script src="js/physics.js"></script>
@@ -71,6 +88,7 @@
     <script src="js/mouselook.js"></script>
     <script src="js/minimap.js"></script>
     <script src="js/snow.js"></script>
+    <script src="js/jewels.js"></script>
     <!-- <script src="js/crystals.js"></script> -->
     <script src="js/main.js"></script>
 </body>
