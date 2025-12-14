@@ -5,14 +5,14 @@ const TERRAIN_CONFIG = {
     heightmapPath: 'assets/heightmap.png', // Default, will be overridden
     availableHeightmaps: [
         'assets/heightmap.png',
-        'AA78_by_Zdzislaw_Beksinski_1978.jpeg',
+        'assets/b.jpeg',
         'assets/Missing_Person_Stalenhag.jpeg'
     ], // List of available heightmaps
     vertexResolution: 128, // Number of vertices per side (64x64, 128x128, etc.) - adjust for detail/performance
     terrainScale: 1000, // World space scale
     heightScale: 90, // Height multiplier from heightmap
     baseColor: '#f0f8ff',
-    metalness: 0.3,
+    metalness: 0.9,
     roughness: 0.8,
     playerHeight: 1.6, // Height above terrain surface
     raycastDistance: 50 // Distance to check for terrain below
