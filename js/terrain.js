@@ -30,7 +30,7 @@ const TerrainModule = (() => {
         // Create base terrain from heightmap
         const terrain = document.createElement('a-entity');
         terrain.setAttribute('id', 'base-terrain');
-        terrain.setAttribute('position', '0 0 0');
+        terrain.setAttribute('position', '0 -900 0');
         
         // Load heightmap and generate terrain
         loadHeightmapAndCreateTerrain(terrain);
@@ -90,8 +90,8 @@ const TerrainModule = (() => {
                 const heightValue = (r + g + b) / 3;
                 
                 // Calculate world position
-                const posX = (x / (resolution - 1) - 0.5) * terrainScale;
-                const posZ = (y / (resolution - 1) - 0.5) * terrainScale;
+                const posX = (x / (resolution - 1) - 0.5) * TERRAIN_CONFIG.terrainScale;
+                const posZ = (y / (resolution - 1) - 0.5) * TERRAIN_CONFIG.terrainScale;
                 const posY = heightValue * heightScale;
                 
                 vertices.push([posX, posY, posZ]);
@@ -124,65 +124,39 @@ const TerrainModule = (() => {
         const positionArray = new Float32Array(vertices.flat());
         const colorArray = new Float32Array(colors.flat());
         
+        // Generate UV coordinates for tiling with variation
+        const uvs = [];
+        for (let y = 0; y < resolution; y++) {
+            for (let x = 0; x < resolution; x++) {
+                // Base UV
+                let uvX = x / (resolution - 1) * 800;
+                let uvY = y / (resolution - 1) * 800;
+                
+                // Add procedural variation to prevent uniform tiling
+                const variation = Math.sin(x * 0.1) * Math.cos(y * 0.1) * 50;
+                uvX += variation;
+                uvY += variation * 0.7;
+                
+                uvs.push(uvX, uvY);
+            }
+        }
+        
         geometry.setAttribute('position', new THREE.BufferAttribute(positionArray, 3));
         geometry.setAttribute('color', new THREE.BufferAttribute(colorArray, 3));
+        geometry.setAttribute('uv', new THREE.BufferAttribute(new Float32Array(uvs), 2));
         geometry.setIndex(new THREE.BufferAttribute(new Uint32Array(indices), 1));
         geometry.computeVertexNormals();
         
-        // Create material with vertex colors and snow accumulation
-        const material = new THREE.ShaderMaterial({
-            uniforms: {
-                snowLevel: { value: 0.9 }, // 0-1, controls how much snow covers terrain
-                snowColor: { value: new THREE.Color('#ffffff') },
-                snowIntensity: { value: 0.8 } // 0-1, blending intensity
-            },
-            vertexShader: `
-                varying vec3 vColor;
-                varying vec3 vNormal;
-                varying float vHeight;
-                
-                attribute vec3 color;
-                
-                void main() {
-                    vColor = color;
-                    vNormal = normalize(normalMatrix * normal);
-                    vHeight = position.y;
-                    
-                    gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
-                }
-            `,
-            fragmentShader: `
-                uniform float snowLevel;
-                uniform vec3 snowColor;
-                uniform float snowIntensity;
-                
-                varying vec3 vColor;
-                varying vec3 vNormal;
-                varying float vHeight;
-                
-                void main() {
-                    // Surface normal - flatter surfaces get more snow
-                    float flatness = dot(vNormal, vec3(0.0, 1.0, 0.0));
-                    flatness = max(0.0, flatness); // Only top surfaces
-                    
-                    // Height-based snow accumulation - higher = more snow
-                    float heightInfluence = vHeight / 90.0; // Normalize by heightScale
-                    heightInfluence = clamp(heightInfluence, 0.0, 1.0);
-                    
-                    // Combine flatness and height for snow coverage
-                    float snowCoverage = flatness * 0.7 + heightInfluence * 0.3;
-                    snowCoverage = clamp(snowCoverage, 0.0, 1.0);
-                    
-                    // Apply snowLevel to modulate total snow
-                    float snowAmount = snowCoverage * snowLevel;
-                    
-                    // Blend terrain color with snow color
-                    vec3 finalColor = mix(vColor, snowColor, snowAmount * snowIntensity);
-                    
-                    gl_FragColor = vec4(finalColor, 1.0);
-                }
-            `,
-            side: THREE.DoubleSide
+        // Create material with vertex colors - use MeshStandardMaterial for proper lighting
+        const material = new THREE.MeshStandardMaterial({
+            vertexColors: true,
+            metalness: 0.1,
+            roughness: 0.9,
+            emissive: new THREE.Color('#000000'),
+            emissiveIntensity: 0,
+            side: THREE.DoubleSide,
+            normalMap: createBumpNormalMap(imgWidth, imgHeight, heightmapData),
+            normalScale: new THREE.Vector2(0.5, 0.5) // Adjust bump intensity
         });
         
         // Create mesh
@@ -271,6 +245,80 @@ const TerrainModule = (() => {
     };
     
     let terrainMesh = null;
+    
+    const createBumpNormalMap = (width, height, heightmapData) => {
+        // Create a higher-resolution canvas for detailed bump texture
+        const bumpSize = 512; // Higher resolution for more detail
+        const canvas = document.createElement('canvas');
+        canvas.width = bumpSize;
+        canvas.height = bumpSize;
+        const ctx = canvas.getContext('2d');
+        const imageData = ctx.createImageData(bumpSize, bumpSize);
+        const data = imageData.data;
+        
+        // Generate Perlin-like noise using multiple octaves
+        const generateNoise = (x, y) => {
+            let value = 0;
+            let amplitude = 1;
+            let frequency = 1;
+            let maxValue = 0;
+            
+            // Multiple octaves of sine/cosine noise
+            for (let i = 0; i < 4; i++) {
+                value += Math.sin(x * frequency * 0.02) * Math.cos(y * frequency * 0.02) * amplitude;
+                value += Math.sin(x * frequency * 0.03) * amplitude;
+                value += Math.cos(y * frequency * 0.03) * amplitude;
+                
+                maxValue += amplitude;
+                amplitude *= 0.5;
+                frequency *= 2.3; // Prime-ish multiplier for less repetition
+            }
+            
+            return value / maxValue;
+        };
+        
+        // Generate procedural bump texture with natural variation
+        for (let y = 0; y < bumpSize; y++) {
+            for (let x = 0; x < bumpSize; x++) {
+                // Multi-scale Perlin-like noise
+                let bump = generateNoise(x, y) * 0.6;
+                bump += (Math.random() - 0.5) * 0.4; // Random variation
+                bump = Math.max(-1, Math.min(1, bump)); // Clamp
+                
+                // Sample neighbors with noise for natural variation
+                const h_l = bump + generateNoise(x - 2, y) * 0.3;
+                const h_r = bump + generateNoise(x + 2, y) * 0.3;
+                const h_u = bump + generateNoise(x, y - 2) * 0.3;
+                const h_d = bump + generateNoise(x, y + 2) * 0.3;
+                
+                // Calculate normal from height differences
+                const nx = (h_l - h_r);
+                const ny = (h_u - h_d);
+                const nz = 2; // Increased Z for subtler effect
+                
+                // Normalize
+                const len = Math.sqrt(nx * nx + ny * ny + nz * nz);
+                const normalizedX = (nx / len) * 0.5 + 0.5;
+                const normalizedY = (ny / len) * 0.5 + 0.5;
+                const normalizedZ = (nz / len) * 0.5 + 0.5;
+                
+                // Convert to RGB
+                const idx = (y * bumpSize + x) * 4;
+                data[idx] = normalizedX * 255;     // R
+                data[idx + 1] = normalizedY * 255; // G
+                data[idx + 2] = normalizedZ * 255; // B
+                data[idx + 3] = 255;               // A
+            }
+        }
+        
+        ctx.putImageData(imageData, 0, 0);
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.minFilter = THREE.LinearMipmapLinearFilter;
+        texture.magFilter = THREE.LinearFilter;
+        texture.wrapS = THREE.RepeatWrapping;
+        texture.wrapT = THREE.RepeatWrapping;
+        return texture;
+    };
     
     const getTerrain = () => terrainMesh;
     

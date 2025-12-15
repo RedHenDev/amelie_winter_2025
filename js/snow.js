@@ -2,12 +2,13 @@
 
 const SnowModule = (() => {
     const config = {
-        flakeCount: 80000, // Total number of snowflakes
-        spreadRadius: 128, // Horizontal spread
-        heightRange: [-128, 512], // Min and max height
-        fallSpeed: 5, // Units per second
-        wobbleAmount: 15, // Horizontal wobble distance
-        wobbleSpeed: 1 // Wobble frequency
+        flakeCount: 15000, // Increased from 8000 for density
+        spreadRadius: 200, // Reduced from 512 for tighter cloud
+        heightRange: [-80, 80], // Tighter vertical range around camera
+        fallSpeed: 2, // Units per second
+        wobbleAmount: 8, // Horizontal wobble distance
+        wobbleSpeed: 1, // Wobble frequency
+        cameraOffset: 5 // Distance of cloud center from camera
     };
     
     const createSnow = () => {
@@ -128,6 +129,9 @@ const SnowModule = (() => {
             transparent: true
         });
         
+        // Ensure the material is not emissive to prevent self-illumination
+        material.emissive = new THREE.Color(0, 0, 0);
+        
         return material;
     };
     
@@ -139,17 +143,29 @@ const SnowModule = (() => {
         const phases = [];
         const colorPhases = [];
         
-        // Generate particle positions
+        // Generate particle positions with bias towards center
         for (let i = 0; i < config.flakeCount; i++) {
-            // Random position in spread area
-            const x = (Math.random() - 0.5) * config.spreadRadius;
+            // Use exponential distribution to cluster particles near center
+            // Random value 0-1, then square it to bias towards 0
+            const randomRadius = Math.random();
+            const biasedRadius = Math.sqrt(randomRadius); // Square root creates denser center
+            
+            // Random angle around camera
+            const angle = Math.random() * Math.PI * 2;
+            
+            // Distribute based on biased radius
+            const x = Math.cos(angle) * biasedRadius * config.spreadRadius;
+            const z = Math.sin(angle) * biasedRadius * config.spreadRadius;
+            
+            // Uniform height distribution for falling effect
             const y = config.heightRange[0] + Math.random() * (config.heightRange[1] - config.heightRange[0]);
-            const z = (Math.random() - 0.5) * config.spreadRadius;
             
             positions.push(x, y, z);
             
-            // Random size variation (0.5 to 2.0)
-            sizes.push(2.0 + Math.random() * 6.0);
+            // Size variation - smaller flakes in distance, larger up close
+            // Closer particles (smaller radius) are slightly larger
+            const sizeVariation = 1.5 + (1 - biasedRadius) * 0.5; // Range: 1.5 to 2.0x
+            sizes.push(2.0 + Math.random() * 6.0 * sizeVariation);
             
             // Random phase for wobble variation
             phases.push(Math.random() * Math.PI * 2);
