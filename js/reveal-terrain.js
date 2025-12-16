@@ -3,6 +3,7 @@
 const RevealTerrainModule = (() => {
     let revealLight = null;
     let isRevealed = true;
+    let hasLandedOnce = false; // Track if player has landed at least once
 
     const init = () => {
         console.log('Reveal terrain module initialized');
@@ -48,13 +49,29 @@ const RevealTerrainModule = (() => {
                 return;
             }
 
-            // Check physics module's isOnTerrain state
-            const physicsState = PhysicsModule && PhysicsModule.getPhysicsState ? PhysicsModule.getPhysicsState() : null;
+            // Get camera and its enhanced-camera-controls component
+            const camera = document.getElementById('camera');
+            if (!camera) {
+                requestAnimationFrame(checkLanding);
+                return;
+            }
+
+            // Check if the component exists
+            const controlsComponent = camera.components['enhanced-camera-controls'];
+            if (!controlsComponent) {
+                requestAnimationFrame(checkLanding);
+                return;
+            }
+
+            // Check if player is on ground
+            const isOnGround = controlsComponent.isOnGround;
             
-            if (isRevealed && physicsState && physicsState.isOnTerrain) {
+            // Disable reveal light when player first lands
+            if (isRevealed && isOnGround && !hasLandedOnce) {
                 disableRevealLight();
                 restoreFog();
                 isRevealed = false;
+                hasLandedOnce = true;
                 console.log('Player landed on terrain - disabling reveal light and restoring fog');
             }
 
@@ -74,6 +91,7 @@ const RevealTerrainModule = (() => {
         if (revealLight) {
             revealLight.setAttribute('intensity', '1.2');
             isRevealed = true;
+            hasLandedOnce = false;
             extendFog();
         }
     };

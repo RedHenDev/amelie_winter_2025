@@ -11,6 +11,78 @@
             overflow: hidden;
             font-family: Arial, sans-serif;
         }
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1e3f 50%, #0a0e27 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+            transition: opacity 0.5s ease-out;
+        }
+        #start-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #start-screen h1 {
+            color: #fff;
+            font-size: 3em;
+            margin-bottom: 10px;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+        }
+        #start-screen .subtitle {
+            color: #aabbcc;
+            font-size: 1.2em;
+            margin-bottom: 40px;
+            font-weight: 300;
+        }
+        .terrain-selector {
+            display: flex;
+            gap: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1000px;
+            padding: 20px;
+        }
+        .terrain-option {
+            position: relative;
+            width: 250px;
+            height: 250px;
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+        }
+        .terrain-option:hover {
+            transform: translateY(-10px) scale(1.05);
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 40px rgba(255, 255, 255, 0.3);
+        }
+        .terrain-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .terrain-option .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            padding: 20px;
+            color: white;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: center;
+        }
         #info {
             position: absolute;
             top: 10px;
@@ -38,11 +110,29 @@
     </style>
 </head>
 <body>
-    <!-- <a-scene background="color: #e8f4f8" fog="type: linear; color: #e8f4f8; far: 150; near: 0.1"> -->
-        <a-scene background="color: #0a0e27" fog="type: linear; color: #0a0e27; far: 300; near: 0.1">
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1>❄️ WINTER TERRAIN EXPLORER ❄️</h1>
+        <p class="subtitle">Select Your Terrain</p>
+        <div class="terrain-selector" id="terrain-selector">
+            <!-- Terrain options will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- A-Frame Scene -->
+    <a-scene background="color: #0a0e27" fog="type: linear; color: #0a0e27; far: 300; near: 0.1" vr-mode-ui="enabled: false">
     
-        <!-- Camera -->
-        <a-entity id="camera" camera="active: true; wasd-controls: false" position="0 100 0" look-controls="pointerLockEnabled: true; reverseMouseDrag: false">
+        <!-- Camera with Enhanced Controls -->
+        <a-entity id="camera" 
+                  camera="active: true" 
+                  position="0 100 0" 
+                  enhanced-camera-controls="
+                      sensitivity: 2.0;
+                      mobileSensitivity: 1.0;
+                      heightOffset: 1.6;
+                      moveSpeed: 0.3;
+                      runMultiplier: 2.5;
+                      showMobileControls: true">
             <a-entity cursor="fuse: true; fuseTimeout: 500" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: black; shader: flat"></a-entity>
         </a-entity>
 
@@ -70,9 +160,17 @@
 
     <div id="info">
         <h3>Winter Terrain Explorer</h3>
-        <p><strong>Controls:</strong> WASD/Arrows to move</p>
-        <p><strong>Mouselook:</strong> Click to enable pointer lock (ESC to exit)</p>
-        <!-- <p>Explore caves and tunnels</p> -->
+        <p><strong>Desktop Controls:</strong></p>
+        <p>• WASD/Arrows: Move</p>
+        <p>• Shift: Run</p>
+        <p>• Space: Jump</p>
+        <p>• T: Toggle movement</p>
+        <p>• R: Toggle run</p>
+        <p>• Mouse: Look around (click to enable)</p>
+        <p>• ESC: Release mouse</p>
+        <p><strong>Mobile/VR:</strong></p>
+        <p>• Swipe to look</p>
+        <p>• Use on-screen buttons</p>
     </div>
 
     <div id="jewel-stats">
@@ -80,15 +178,14 @@
     </div>
 
     <!-- Module scripts -->
+    <script src="js/start-screen.js"></script>
     <script src="js/terrain.js"></script>
-    <script src="js/physics.js"></script>
-    <script src="js/movement.js"></script>
-    <script src="js/mouselook.js"></script>
+    <script src="js/enhanced-controls.js"></script>
     <script src="js/minimap.js"></script>
     <script src="js/reveal-terrain.js"></script>
     <!-- <script src="js/snow.js"></script> -->
     <script src="js/headlight.js"></script>
-    <!-- <script src="js/jewels.js"></script> -->
+    <script src="js/jewels.js"></script>
     <!-- <script src="js/crystals.js"></script> -->
     <script src="js/main.js"></script>
 </body>

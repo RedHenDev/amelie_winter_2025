@@ -183,16 +183,4 @@ const MinimapModule = (() => {
     };
 })();
 
-// Initialize minimap
-document.addEventListener('DOMContentLoaded', () => {
-    const scene = document.querySelector('a-scene');
-    if (scene.hasLoaded) {
-        MinimapModule.init();
-    } else {
-        scene.addEventListener('loaded', () => {
-            setTimeout(() => {
-                MinimapModule.init();
-            }, 300);
-        });
-    }
-});
+// NO AUTO-INITIALIZATION - Will be called by start-screen.js after terrain selection

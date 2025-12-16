@@ -2,7 +2,7 @@
 
 // ===== CONFIGURATION =====
 const TERRAIN_CONFIG = {
-    heightmapPath: 'assets/heightmap.png', // Default, will be overridden
+    heightmapPath: 'assets/heightmap.png', // Default, will be overridden by start screen
     availableHeightmaps: [
         'assets/heightmap.png',
         'assets/b.jpeg',
@@ -22,10 +22,9 @@ const TerrainModule = (() => {
     const createTerrain = () => {
         const terrainContainer = document.getElementById('terrain-container');
         
-        // Randomly select a heightmap
-        const randomIndex = Math.floor(Math.random() * TERRAIN_CONFIG.availableHeightmaps.length);
-        TERRAIN_CONFIG.heightmapPath = TERRAIN_CONFIG.availableHeightmaps[randomIndex];
-        console.log(`Selected heightmap: ${TERRAIN_CONFIG.heightmapPath}`);
+        // Use the heightmap path that was set by the start screen
+        // No longer randomly selecting
+        console.log(`Creating terrain with heightmap: ${TERRAIN_CONFIG.heightmapPath}`);
         
         // Create base terrain from heightmap
         const terrain = document.createElement('a-entity');
@@ -334,10 +333,5 @@ const TerrainModule = (() => {
     };
 })();
 
-// Initialize terrain when scene is ready
-document.addEventListener('DOMContentLoaded', () => {
-    const scene = document.querySelector('a-scene');
-    scene.addEventListener('loaded', () => {
-        TerrainModule.init();
-    });
-});
+// Terrain will be initialized by the start screen module after selection
+// No auto-initialization here
