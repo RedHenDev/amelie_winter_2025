@@ -12,11 +12,11 @@ const JewelsModule = (() => {
     const jewelTypes = [
         { color: '#00d4ff', type: 'diamond' },
         { color: '#00ff44', type: 'emerald' },
-        { color: '#0055ff', type: 'lapis' }
+        { color: '#f90227ff', type: 'ruby' }
     ];
 
     let jewels = [];
-    let collectedCount = { diamond: 0, emerald: 0, lapis: 0 };
+    let collectedCount = { diamond: 0, emerald: 0, ruby: 0 };
     let sharedMaterial = null;
 
     const init = () => {

@@ -19,11 +19,12 @@ const RevealTerrainModule = (() => {
         revealLight = document.createElement('a-light');
         revealLight.setAttribute('type', 'directional');
         revealLight.setAttribute('color', '#ffffff');
-        revealLight.setAttribute('intensity', '1.2');
+        revealLight.setAttribute('intensity', '2.0'); // Increased from 1.2
         revealLight.setAttribute('position', '100 200 100');
         revealLight.setAttribute('id', 'reveal-light');
         
         scene.appendChild(revealLight);
+        console.log('Reveal light created with intensity 2.0');
     };
 
     const extendFog = () => {
@@ -89,7 +90,7 @@ const RevealTerrainModule = (() => {
 
     const enableRevealLight = () => {
         if (revealLight) {
-            revealLight.setAttribute('intensity', '1.2');
+            revealLight.setAttribute('intensity', '2.0'); // Increased from 1.2
             isRevealed = true;
             hasLandedOnce = false;
             extendFog();
@@ -103,18 +104,4 @@ const RevealTerrainModule = (() => {
     };
 })();
 
-// Initialize reveal terrain when DOM is ready
-document.addEventListener('DOMContentLoaded', () => {
-    const scene = document.querySelector('a-scene');
-    if (scene.hasLoaded) {
-        setTimeout(() => {
-            RevealTerrainModule.init();
-        }, 500);
-    } else {
-        scene.addEventListener('loaded', () => {
-            setTimeout(() => {
-                RevealTerrainModule.init();
-            }, 500);
-        });
-    }
-});
+// NO AUTO-INITIALIZATION - Will be called by start-screen.js after terrain selection

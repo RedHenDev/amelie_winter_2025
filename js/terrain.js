@@ -6,7 +6,11 @@ const TERRAIN_CONFIG = {
     availableHeightmaps: [
         'assets/heightmap.png',
         'assets/b.jpeg',
-        'assets/Missing_Person_Stalenhag.jpeg'
+        'assets/Missing_Person_Stalenhag.jpeg',
+        'assets/bridgebow.png',
+        'assets/mine_chicken.png',
+        'assets/unicorn.png',
+        'assets/mandlebrot.png'
     ], // List of available heightmaps
     vertexResolution: 128, // Number of vertices per side (64x64, 128x128, etc.) - adjust for detail/performance
     terrainScale: 1000, // World space scale
