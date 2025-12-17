@@ -42,6 +42,9 @@ AFRAME.registerComponent('enhanced-camera-controls', {
             space: false
         };
 
+        // Flag to track if controls are ready
+        this.controlsReady = false;
+
         console.log("Enhanced controls initialized for", this.isMobile ? "mobile" : "desktop");
 
         // Bind methods
@@ -56,6 +59,27 @@ AFRAME.registerComponent('enhanced-camera-controls', {
         this.onTouchEnd = this.onTouchEnd.bind(this);
         this.toggleMovement = this.toggleMovement.bind(this);
         this.toggleRunning = this.toggleRunning.bind(this);
+
+        // DON'T setup controls yet - wait for terrain to be selected
+        // Listen for a custom event from start-screen
+        document.addEventListener('terrainSelected', () => {
+            this.initializeControls();
+        });
+
+        // Fallback: if scene is already visible (shouldn't happen with start screen)
+        setTimeout(() => {
+            const scene = document.querySelector('a-scene');
+            if (scene && scene.style.display !== 'none' && !this.controlsReady) {
+                this.initializeControls();
+            }
+        }, 1000);
+    },
+
+    initializeControls: function() {
+        if (this.controlsReady) return; // Already initialized
+        this.controlsReady = true;
+
+        console.log("Initializing controls after terrain selection");
 
         // Setup controls based on device
         if (this.isMobile) {
@@ -349,7 +373,7 @@ AFRAME.registerComponent('enhanced-camera-controls', {
             
             // Rotate movement direction by camera yaw
             const angle = rotation.y;
-            const moveX = moveDir.x * -Math.cos(angle) + moveDir.z * Math.sin(angle);
+            const moveX = -moveDir.x * Math.cos(angle) + moveDir.z * Math.sin(angle);
             const moveZ = moveDir.x * Math.sin(angle) + moveDir.z * Math.cos(angle);
             
             // Apply to velocity

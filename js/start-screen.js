@@ -96,6 +96,10 @@ const StartScreenModule = (() => {
         setTimeout(() => {
             startScreen.style.display = 'none';
             
+            // Dispatch event to notify controls that terrain is selected
+            const terrainSelectedEvent = new CustomEvent('terrainSelected');
+            document.dispatchEvent(terrainSelectedEvent);
+            
             // Initialize the terrain with the selected heightmap
             if (typeof TerrainModule !== 'undefined') {
                 TerrainModule.init();
