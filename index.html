@@ -21,9 +21,14 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start;
+            overflow-y: auto;
+            overflow-x: hidden;
             z-index: 1000;
             transition: opacity 0.5s ease-out;
+            padding: 20px 10px;
+            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
         }
         #start-screen.hidden {
             opacity: 0;
@@ -31,40 +36,48 @@
         }
         #start-screen h1 {
             color: #fff;
-            font-size: 3em;
-            margin-bottom: 10px;
+            font-size: clamp(1.5em, 5vw, 3em);
+            margin: 20px 0 10px 0;
             text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
             letter-spacing: 2px;
+            text-align: center;
+            line-height: 1.2;
         }
         #start-screen .subtitle {
             color: #aabbcc;
-            font-size: 1.2em;
-            margin-bottom: 40px;
+            font-size: clamp(1em, 3vw, 1.2em);
+            margin-bottom: 30px;
             font-weight: 300;
+            text-align: center;
         }
         .terrain-selector {
             display: flex;
-            gap: 30px;
+            gap: 20px;
             flex-wrap: wrap;
             justify-content: center;
             max-width: 1000px;
-            padding: 20px;
+            padding: 20px 10px;
+            margin-bottom: 40px;
         }
         .terrain-option {
             position: relative;
-            width: 250px;
-            height: 250px;
+            width: min(250px, calc(100vw - 60px));
+            height: min(250px, calc(100vw - 60px));
             border: 3px solid rgba(255, 255, 255, 0.3);
             border-radius: 10px;
             overflow: hidden;
             cursor: pointer;
             transition: all 0.3s ease;
             box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
         }
         .terrain-option:hover {
             transform: translateY(-10px) scale(1.05);
             border-color: rgba(255, 255, 255, 0.8);
             box-shadow: 0 10px 40px rgba(255, 255, 255, 0.3);
+        }
+        .terrain-option:active {
+            transform: scale(0.98);
         }
         .terrain-option img {
             width: 100%;
@@ -83,6 +96,53 @@
             font-weight: bold;
             text-align: center;
         }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            #start-screen {
+                padding: 10px;
+                justify-content: flex-start;
+            }
+            #start-screen h1 {
+                font-size: clamp(1.2em, 6vw, 2em);
+                margin-top: 10px;
+                margin-bottom: 5px;
+                padding: 0 10px;
+            }
+            #start-screen .subtitle {
+                font-size: clamp(0.9em, 4vw, 1.1em);
+                margin-bottom: 20px;
+            }
+            .terrain-selector {
+                gap: 15px;
+                padding: 10px;
+                margin-bottom: 20px;
+            }
+            .terrain-option {
+                width: min(280px, calc(100vw - 40px));
+                height: min(280px, calc(100vw - 40px));
+            }
+            .terrain-option:hover {
+                transform: none;
+            }
+            .terrain-option:active {
+                transform: scale(0.95);
+                border-color: rgba(255, 255, 255, 0.9);
+            }
+        }
+        
+        /* Very small screens */
+        @media (max-width: 400px) {
+            .terrain-option {
+                width: calc(100vw - 30px);
+                height: calc(100vw - 30px);
+            }
+            .terrain-option .overlay {
+                padding: 15px;
+                font-size: 1em;
+            }
+        }
+        
         #info {
             position: absolute;
             top: 10px;
@@ -137,7 +197,7 @@
         </a-entity>
 
         <!-- Lighting -->
-        <a-light type="ambient" color="white" intensity="0.02"></a-light>
+        <a-light type="ambient" color="white" intensity="0.3"></a-light>
 
         <!-- Sky -->
         <a-sky id="sky" color="#0a0e27" geometry="radius: 100000"></a-sky>
