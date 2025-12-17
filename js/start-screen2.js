@@ -15,6 +15,26 @@ const StartScreenModule = (() => {
             description: 'Unknown terrain awaits'
         },
         {
+            path: 'assets/bridgebow.png',
+            name: 'Aliens see colours too',
+            description: "Search the rainbow's end"
+        },
+        {
+            path: 'assets/mandlebrot.png',
+            name: 'Infinity Explodes',
+            description: 'Patterns of identity'
+        },
+        {
+            path: 'assets/mine_chicken.png',
+            name: 'Look at all those chickens',
+            description: 'Terrain of terrains'
+        },
+        {
+            path: 'assets/unicorn.png',
+            name: 'Land of One Horn',
+            description: 'Magic and light'
+        },
+        {
             path: 'assets/Missing_Person_Stalenhag.jpeg',
             name: 'Stalenhag Vista',
             description: 'Atmospheric wilderness'
@@ -82,11 +102,6 @@ const StartScreenModule = (() => {
             TERRAIN_CONFIG.heightmapPath = terrainPath;
         }
         
-        // Initialize the reveal light BEFORE showing the scene
-        if (typeof RevealTerrainModule !== 'undefined') {
-            RevealTerrainModule.init();
-        }
-        
         // Show the scene
         const scene = document.querySelector('a-scene');
         if (scene) {
@@ -114,6 +129,13 @@ const StartScreenModule = (() => {
             if (typeof MinimapModule !== 'undefined') {
                 setTimeout(() => {
                     MinimapModule.init();
+                }, 500); // Small delay to ensure terrain is loaded
+            }
+            
+            // Initialize reveal terrain module AFTER terrain selection
+            if (typeof RevealTerrainModule !== 'undefined') {
+                setTimeout(() => {
+                    RevealTerrainModule.init();
                 }, 500); // Small delay to ensure terrain is loaded
             }
         }, 500);
