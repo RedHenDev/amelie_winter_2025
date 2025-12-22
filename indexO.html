@@ -1,0 +1,253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amelie's Winter World 2025</title>
+    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: Arial, sans-serif;
+        }
+        #start-screen {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1e3f 50%, #0a0e27 100%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            overflow-y: auto;
+            overflow-x: hidden;
+            z-index: 1000;
+            transition: opacity 0.5s ease-out;
+            padding: 20px 10px;
+            box-sizing: border-box;
+            -webkit-overflow-scrolling: touch;
+        }
+        #start-screen.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+        #start-screen h1 {
+            color: #fff;
+            font-size: clamp(1.5em, 5vw, 3em);
+            margin: 20px 0 10px 0;
+            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
+            letter-spacing: 2px;
+            text-align: center;
+            line-height: 1.2;
+        }
+        #start-screen .subtitle {
+            color: #aabbcc;
+            font-size: clamp(1em, 3vw, 1.2em);
+            margin-bottom: 30px;
+            font-weight: 300;
+            text-align: center;
+        }
+        .terrain-selector {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            justify-content: center;
+            max-width: 1000px;
+            padding: 20px 10px;
+            margin-bottom: 40px;
+        }
+        .terrain-option {
+            position: relative;
+            width: min(250px, calc(100vw - 60px));
+            height: min(250px, calc(100vw - 60px));
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 10px;
+            overflow: hidden;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
+            flex-shrink: 0;
+        }
+        .terrain-option:hover {
+            transform: translateY(-10px) scale(1.05);
+            border-color: rgba(255, 255, 255, 0.8);
+            box-shadow: 0 10px 40px rgba(255, 255, 255, 0.3);
+        }
+        .terrain-option:active {
+            transform: scale(0.98);
+        }
+        .terrain-option img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+        .terrain-option .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
+            padding: 20px;
+            color: white;
+            font-size: 1.1em;
+            font-weight: bold;
+            text-align: center;
+        }
+        
+        /* Mobile-specific styles */
+        @media (max-width: 768px) {
+            #start-screen {
+                padding: 10px;
+                justify-content: flex-start;
+            }
+            #start-screen h1 {
+                font-size: clamp(1.2em, 6vw, 2em);
+                margin-top: 10px;
+                margin-bottom: 5px;
+                padding: 0 10px;
+            }
+            #start-screen .subtitle {
+                font-size: clamp(0.9em, 4vw, 1.1em);
+                margin-bottom: 20px;
+            }
+            .terrain-selector {
+                gap: 15px;
+                padding: 10px;
+                margin-bottom: 20px;
+            }
+            .terrain-option {
+                width: min(280px, calc(100vw - 40px));
+                height: min(280px, calc(100vw - 40px));
+            }
+            .terrain-option:hover {
+                transform: none;
+            }
+            .terrain-option:active {
+                transform: scale(0.95);
+                border-color: rgba(255, 255, 255, 0.9);
+            }
+        }
+        
+        /* Very small screens */
+        @media (max-width: 400px) {
+            .terrain-option {
+                width: calc(100vw - 30px);
+                height: calc(100vw - 30px);
+            }
+            .terrain-option .overlay {
+                padding: 15px;
+                font-size: 1em;
+            }
+        }
+        
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 10;
+            display: none; /* Hidden by default */
+        }
+        #jewel-stats {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            background: rgba(0, 0, 0, 0.7);
+            padding: 10px 15px;
+            border-radius: 5px;
+            font-size: 14px;
+            z-index: 10;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <!-- Start Screen -->
+    <div id="start-screen">
+        <h1>❄️ Amelie's Winter World ❄️</h1>
+        <p class="subtitle">Select Your Terrain</p>
+        <div class="terrain-selector" id="terrain-selector">
+            <!-- Terrain options will be populated by JavaScript -->
+        </div>
+    </div>
+
+    <!-- A-Frame Scene -->
+    <a-scene background="color: #0a0e27" fog="type: linear; color: #0a0e27; far: 300; near: 0.1" vr-mode-ui="enabled: false">
+    
+        <!-- Camera with Enhanced Controls -->
+        <a-entity id="camera" 
+                  camera="active: true" 
+                  position="0 100 0" 
+                  enhanced-camera-controls="
+                      sensitivity: 2.0;
+                      mobileSensitivity: 1.0;
+                      heightOffset: 1.6;
+                      moveSpeed: 0.3;
+                      runMultiplier: 2.5;
+                      showMobileControls: true">
+            <a-entity cursor="fuse: true; fuseTimeout: 500" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: black; shader: flat"></a-entity>
+        </a-entity>
+
+        <!-- Lighting -->
+        <a-light type="ambient" color="white" intensity="0.3"></a-light>
+
+        <!-- Sky -->
+        <a-sky id="sky" color="#0a0e27" geometry="radius: 100000"></a-sky>
+
+        <!-- Terrain container -->
+        <a-entity id="terrain-container" position="0 0 0"></a-entity>
+
+        <!-- Cave system container -->
+        <!-- <a-entity id="cave-container" position="0 0 0"></a-entity> -->
+
+        <!-- Tunnel container -->
+        <!-- <a-entity id="tunnel-container" position="0 0 0"></a-entity> -->
+
+        <!-- Snow particles container -->
+        <a-entity id="snow-container" position="0 0 0"></a-entity>
+
+        <!-- Ice crystals container -->
+        <!-- <a-entity id="crystals-container" position="0 0 0"></a-entity> -->
+    </a-scene>
+
+    <div id="info">
+        <h3>Winter Terrain Explorer</h3>
+        <p><strong>Desktop Controls:</strong></p>
+        <p>• WASD/Arrows: Move</p>
+        <p>• Shift: Run</p>
+        <p>• Space: Jump</p>
+        <p>• T: Toggle movement</p>
+        <p>• R: Toggle run</p>
+        <p>• Mouse: Look around (click to enable)</p>
+        <p>• ESC: Release mouse</p>
+        <p><strong>Mobile/VR:</strong></p>
+        <p>• Swipe to look</p>
+        <p>• Use on-screen buttons</p>
+    </div>
+
+    <div id="jewel-stats">
+        💎 0 | 💚 0 | 💙 0
+    </div>
+
+    <!-- Module scripts -->
+    <script src="js/start-screen2.js"></script>
+    <script src="js/terrain.js"></script>
+    <script src="js/enhanced-controls.js"></script>
+    <script src="js/minimap.js"></script>
+    <script src="js/reveal-terrain.js"></script>
+    <script src="js/initial-fall-lookdown.js"></script>
+    <!-- <script src="js/snow.js"></script> -->
+    <script src="js/headlight.js"></script>
+    <script src="js/jewels.js"></script>
+    <!-- <script src="js/crystals.js"></script> -->
+    <script src="js/main.js"></script>
+</body>
+</html>

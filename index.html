@@ -3,251 +3,460 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Amelie's Winter World 2025</title>
-    <script src="https://aframe.io/releases/1.7.0/aframe.min.js"></script>
+    <title>Christmas Movie Selector</title>
     <style>
         body {
             margin: 0;
+            padding: 0;
+            height: 100vh;
+            background: black;
+            color: white;
+            font-family: 'Segoe UI', Arial, sans-serif;
             overflow: hidden;
-            font-family: Arial, sans-serif;
-        }
-        #start-screen {
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, #0a0e27 0%, #1a1e3f 50%, #0a0e27 100%);
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: flex-start;
-            overflow-y: auto;
-            overflow-x: hidden;
-            z-index: 1000;
-            transition: opacity 0.5s ease-out;
-            padding: 20px 10px;
-            box-sizing: border-box;
-            -webkit-overflow-scrolling: touch;
+            justify-content: center;
         }
-        #start-screen.hidden {
-            opacity: 0;
+
+        canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        #container {
+            position: relative;
+            z-index: 10;
+            text-align: center;
+            max-width: 90%;
+        }
+
+        h1 {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            text-shadow: 0 0 10px #fff;
+        }
+
+        #movie-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
+            gap: 1rem;
+            margin: 2rem auto;
+            max-width: 1200px;
+            max-height: 60vh;
+            overflow-y: auto;
+            padding: 1rem;
+            background: rgba(0,0,0,0.5);
+            border-radius: 20px;
+        }
+
+        .movie-card {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 15px;
+            padding: 1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            backdrop-filter: blur(5px);
+            border: 2px solid transparent;
+        }
+
+        .movie-card:hover {
+            transform: scale(1.05);
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .movie-card.selected {
+            border-color: #0f0;
+            background: rgba(0, 255, 0, 0.2);
+            box-shadow: 0 0 20px #0f0;
+        }
+
+        button {
+            background: #c00;
+            color: white;
+            border: none;
+            padding: 1rem 2rem;
+            font-size: 1.5rem;
+            border-radius: 50px;
+            cursor: pointer;
+            margin: 2rem;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.5);
+            transition: all 0.3s;
+        }
+
+        button:hover {
+            background: #f00;
+            transform: translateY(-3px);
+        }
+
+        button:disabled {
+            background: #666;
+            cursor: not-allowed;
+        }
+
+        #reveal-stage {
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: 100vw;
+            text-align: center;
+            z-index: 100;
+        }
+
+        #movie-title {
+            font-size: 8rem;
+            font-weight: bold;
+            color: #ff0000;
+            text-shadow: 
+                0 0 20px #ff0000,
+                0 0 40px #ff3333,
+                0 0 60px #ff6666,
+                0 0 80px #ff9999,
+                0 0 100px #ffcccc,
+                0 0 120px #ffffff;
+            animation: sparkle 1.8s infinite alternate;
+            margin: 0 1rem;
+            line-height: 1.2;
+            position: relative;
             pointer-events: none;
         }
-        #start-screen h1 {
-            color: #fff;
-            font-size: clamp(1.5em, 5vw, 3em);
-            margin: 20px 0 10px 0;
-            text-shadow: 0 0 20px rgba(255, 255, 255, 0.5);
-            letter-spacing: 2px;
-            text-align: center;
-            line-height: 1.2;
-        }
-        #start-screen .subtitle {
-            color: #aabbcc;
-            font-size: clamp(1em, 3vw, 1.2em);
-            margin-bottom: 30px;
-            font-weight: 300;
-            text-align: center;
-        }
-        .terrain-selector {
-            display: flex;
-            gap: 20px;
-            flex-wrap: wrap;
-            justify-content: center;
-            max-width: 1000px;
-            padding: 20px 10px;
-            margin-bottom: 40px;
-        }
-        .terrain-option {
-            position: relative;
-            width: min(250px, calc(100vw - 60px));
-            height: min(250px, calc(100vw - 60px));
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 10px;
-            overflow: hidden;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.5);
-            flex-shrink: 0;
-        }
-        .terrain-option:hover {
-            transform: translateY(-10px) scale(1.05);
-            border-color: rgba(255, 255, 255, 0.8);
-            box-shadow: 0 10px 40px rgba(255, 255, 255, 0.3);
-        }
-        .terrain-option:active {
-            transform: scale(0.98);
-        }
-        .terrain-option img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-        }
-        .terrain-option .overlay {
-            position: absolute;
-            bottom: 0;
+
+        #snow-overlay {
+            position: fixed;
+            top: 0;
             left: 0;
-            right: 0;
-            background: linear-gradient(to top, rgba(0, 0, 0, 0.9), transparent);
-            padding: 20px;
-            color: white;
-            font-size: 1.1em;
-            font-weight: bold;
-            text-align: center;
+            width: 100vw;
+            height: 100vh;
+            pointer-events: all;
+            z-index: 101;
         }
-        
-        /* Mobile-specific styles */
-        @media (max-width: 768px) {
-            #start-screen {
-                padding: 10px;
-                justify-content: flex-start;
-            }
-            #start-screen h1 {
-                font-size: clamp(1.2em, 6vw, 2em);
-                margin-top: 10px;
-                margin-bottom: 5px;
-                padding: 0 10px;
-            }
-            #start-screen .subtitle {
-                font-size: clamp(0.9em, 4vw, 1.1em);
-                margin-bottom: 20px;
-            }
-            .terrain-selector {
-                gap: 15px;
-                padding: 10px;
-                margin-bottom: 20px;
-            }
-            .terrain-option {
-                width: min(280px, calc(100vw - 40px));
-                height: min(280px, calc(100vw - 40px));
-            }
-            .terrain-option:hover {
-                transform: none;
-            }
-            .terrain-option:active {
-                transform: scale(0.95);
-                border-color: rgba(255, 255, 255, 0.9);
-            }
-        }
-        
-        /* Very small screens */
-        @media (max-width: 400px) {
-            .terrain-option {
-                width: calc(100vw - 30px);
-                height: calc(100vw - 30px);
-            }
-            .terrain-option .overlay {
-                padding: 15px;
-                font-size: 1em;
-            }
-        }
-        
-        #info {
+
+        .snowflake-particle {
             position: absolute;
-            top: 10px;
-            left: 10px;
             color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 10;
-            display: none; /* Hidden by default */
+            font-size: 24px;
+            pointer-events: none;
+            animation: snowflake-fall 1s ease-out forwards;
         }
-        #jewel-stats {
-            position: absolute;
-            top: 10px;
-            left: 10px;
-            color: white;
-            background: rgba(0, 0, 0, 0.7);
-            padding: 10px 15px;
-            border-radius: 5px;
-            font-size: 14px;
-            z-index: 10;
-            font-weight: bold;
+
+        @keyframes snowflake-fall {
+            0% {
+                transform: translate(0, 0) rotate(0deg) scale(1);
+                opacity: 1;
+            }
+            100% {
+                transform: translate(var(--tx), var(--ty)) rotate(720deg) scale(0);
+                opacity: 0;
+            }
+        }
+
+        @keyframes sparkle {
+            0% {
+                text-shadow: 
+                    0 0 20px #ff0000,
+                    0 0 40px #ff3333,
+                    0 0 60px #ff6666,
+                    0 0 80px #ff9999,
+                    0 0 100px #ffcccc;
+            }
+            100% {
+                text-shadow: 
+                    0 0 30px #ff3333,
+                    0 0 50px #ff0000,
+                    0 0 80px #ff6666,
+                    0 0 100px #ffaaaa,
+                    0 0 130px #ffdddd,
+                    0 0 150px #ffffff;
+            }
+        }
+
+        #reveal-message {
+            font-size: 2.5rem;
+            margin-top: 2rem;
+            opacity: 0.9;
         }
     </style>
 </head>
 <body>
-    <!-- Start Screen -->
-    <div id="start-screen">
-        <h1>❄️ Amelie's Winter World ❄️</h1>
-        <p class="subtitle">Select Your Terrain</p>
-        <div class="terrain-selector" id="terrain-selector">
-            <!-- Terrain options will be populated by JavaScript -->
-        </div>
+    <canvas id="bg-canvas"></canvas>
+
+    <div id="container">
+        <h1>Christmas Movie Night Selector</h1>
+        <p>Select your "maybe pile" — the movies you're happy to watch tonight! (At least 2)</p>
+
+        <div id="movie-list"></div>
+
+        <button id="choose-btn" disabled>Choose Our Movie! 🎄</button>
     </div>
 
-    <!-- A-Frame Scene -->
-    <a-scene background="color: #0a0e27" fog="type: linear; color: #0a0e27; far: 300; near: 0.1" vr-mode-ui="enabled: false">
-    
-        <!-- Camera with Enhanced Controls -->
-        <a-entity id="camera" 
-                  camera="active: true" 
-                  position="0 100 0" 
-                  enhanced-camera-controls="
-                      sensitivity: 2.0;
-                      mobileSensitivity: 1.0;
-                      heightOffset: 1.6;
-                      moveSpeed: 0.3;
-                      runMultiplier: 2.5;
-                      showMobileControls: true">
-            <a-entity cursor="fuse: true; fuseTimeout: 500" position="0 0 -1" geometry="primitive: ring; radiusInner: 0.02; radiusOuter: 0.03" material="color: black; shader: flat"></a-entity>
-        </a-entity>
-
-        <!-- Lighting -->
-        <a-light type="ambient" color="white" intensity="0.3"></a-light>
-
-        <!-- Sky -->
-        <a-sky id="sky" color="#0a0e27" geometry="radius: 100000"></a-sky>
-
-        <!-- Terrain container -->
-        <a-entity id="terrain-container" position="0 0 0"></a-entity>
-
-        <!-- Cave system container -->
-        <!-- <a-entity id="cave-container" position="0 0 0"></a-entity> -->
-
-        <!-- Tunnel container -->
-        <!-- <a-entity id="tunnel-container" position="0 0 0"></a-entity> -->
-
-        <!-- Snow particles container -->
-        <a-entity id="snow-container" position="0 0 0"></a-entity>
-
-        <!-- Ice crystals container -->
-        <!-- <a-entity id="crystals-container" position="0 0 0"></a-entity> -->
-    </a-scene>
-
-    <div id="info">
-        <h3>Winter Terrain Explorer</h3>
-        <p><strong>Desktop Controls:</strong></p>
-        <p>• WASD/Arrows: Move</p>
-        <p>• Shift: Run</p>
-        <p>• Space: Jump</p>
-        <p>• T: Toggle movement</p>
-        <p>• R: Toggle run</p>
-        <p>• Mouse: Look around (click to enable)</p>
-        <p>• ESC: Release mouse</p>
-        <p><strong>Mobile/VR:</strong></p>
-        <p>• Swipe to look</p>
-        <p>• Use on-screen buttons</p>
+    <div id="reveal-stage">
+        <div id="reveal-message">Tonight's movie is...</div>
+        <div id="movie-title"></div>
+        <canvas id="snow-overlay"></canvas>
     </div>
 
-    <div id="jewel-stats">
-        💎 0 | 💚 0 | 💙 0
-    </div>
+    <script>
+        // Family-friendly Christmas movies (updated for 2025)
+        const movies = [
+            "The Never Ending Story",
+            "Home Alone",
+            "Home Alone 2: Lost in New York",
+            "The Polar Express",
+            "Elf",
+            "The Grinch (2018)",
+            "How the Grinch Stole Christmas (1966)",
+            "A Christmas Story",
+            "It's a Wonderful Life",
+            "Miracle on 34th Street (1947)",
+            "Miracle on 34th Street (1994)",
+            "National Lampoon's Christmas Vacation",
+            "The Muppet Christmas Carol",
+            "Arthur Christmas",
+            "The Santa Clause",
+            "The Santa Clause 2",
+            "Frosty the Snowman",
+            "Rudolph the Red-Nosed Reindeer",
+            "Mickey's Once Upon a Christmas",
+            "Mickey's Twice Upon a Christmas",
+            "Noelle",
+            "The Nightmare Before Christmas",
+            "Beauty and the Beast: The Enchanted Christmas",
+            "Klaus",
+            "The Christmas Chronicles",
+            "The Christmas Chronicles: Part Two",
+            "Jingle Jangle: A Christmas Journey",
+            "That Christmas",
+            "Diary of a Wimpy Kid: The Last Straw",
+            "A Very Jonas Christmas Movie",
+            "The Claus Family",
+            "The Princess Switch",
+            "A Boy Called Christmas",
+            "Robin Robin",
+            "The Boy, the Mole, the Fox and the Horse",
+            "Stick Man",
+            "Scrooged",
+            "Ernest Saves Christmas",
+            "Snow Day"
+        ];
 
-    <!-- Module scripts -->
-    <script src="js/start-screen2.js"></script>
-    <script src="js/terrain.js"></script>
-    <script src="js/enhanced-controls.js"></script>
-    <script src="js/minimap.js"></script>
-    <script src="js/reveal-terrain.js"></script>
-    <script src="js/initial-fall-lookdown.js"></script>
-    <!-- <script src="js/snow.js"></script> -->
-    <script src="js/headlight.js"></script>
-    <script src="js/jewels.js"></script>
-    <!-- <script src="js/crystals.js"></script> -->
-    <script src="js/main.js"></script>
+        const movieList = document.getElementById('movie-list');
+        const chooseBtn = document.getElementById('choose-btn');
+        const container = document.getElementById('container');
+        const revealStage = document.getElementById('reveal-stage');
+        const movieTitle = document.getElementById('movie-title');
+        const bgCanvas = document.getElementById('bg-canvas');
+
+        let selectedMovies = [];
+
+        // Create movie cards (alphabetical)
+        movies.sort().forEach(movie => {
+            const card = document.createElement('div');
+            card.className = 'movie-card';
+            card.textContent = movie;
+            card.addEventListener('click', () => {
+                card.classList.toggle('selected');
+                if (card.classList.contains('selected')) {
+                    selectedMovies.push(movie);
+                } else {
+                    selectedMovies = selectedMovies.filter(m => m !== movie);
+                }
+                chooseBtn.disabled = selectedMovies.length < 2;
+            });
+            movieList.appendChild(card);
+        });
+
+        // Choose button - now instantly reveals the random selection
+        chooseBtn.addEventListener('click', () => {
+            if (selectedMovies.length < 2) return;
+
+            // Randomly select one movie
+            const finalMovie = selectedMovies[Math.floor(Math.random() * selectedMovies.length)];
+
+            // Show the reveal instantly
+            movieTitle.textContent = finalMovie;
+            container.style.display = 'none';
+            revealStage.style.display = 'flex';
+            
+            // Initialize snow overlay
+            initSnowOverlay();
+        });
+
+        // Beautiful starry background with twinkling stars and shooting stars
+        const bgCtx = bgCanvas.getContext('2d');
+        bgCanvas.width = window.innerWidth;
+        bgCanvas.height = window.innerHeight;
+
+        const stars = [];
+        for (let i = 0; i < 300; i++) {
+            stars.push({
+                x: Math.random() * bgCanvas.width,
+                y: Math.random() * bgCanvas.height,
+                radius: Math.random() * 2 + 0.5,
+                speed: Math.random() * 0.3 + 0.05,
+                twinkle: Math.random() * Math.PI * 2
+            });
+        }
+
+        let shootingStars = [];
+        function createShootingStar() {
+            shootingStars.push({
+                x: Math.random() * bgCanvas.width,
+                y: -50,
+                length: Math.random() * 120 + 80,
+                speed: Math.random() * 15 + 10,
+                opacity: 1
+            });
+        }
+
+        setInterval(createShootingStar, Math.random() * 5000 + 3000);
+
+        function animateBackground() {
+            bgCtx.fillStyle = 'rgba(0,0,0,0.1)';
+            bgCtx.fillRect(0, 0, bgCanvas.width, bgCanvas.height);
+
+            stars.forEach(star => {
+                star.twinkle += 0.04;
+                const opacity = (Math.sin(star.twinkle) + 1) / 2 * 0.8 + 0.2;
+                bgCtx.fillStyle = `rgba(255,255,255,${opacity})`;
+                bgCtx.beginPath();
+                bgCtx.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                bgCtx.fill();
+
+                star.y += star.speed;
+                if (star.y > bgCanvas.height) star.y = -10;
+            });
+
+            shootingStars = shootingStars.filter(ss => {
+                ss.y += ss.speed;
+                ss.x += ss.speed * 0.4;
+                ss.opacity -= 0.02;
+
+                bgCtx.strokeStyle = `rgba(255,255,255,${ss.opacity})`;
+                bgCtx.lineWidth = 3;
+                bgCtx.beginPath();
+                bgCtx.moveTo(ss.x, ss.y);
+                bgCtx.lineTo(ss.x - ss.length, ss.y - ss.length / 3);
+                bgCtx.stroke();
+
+                return ss.opacity > 0 && ss.y < bgCanvas.height + 100;
+            });
+
+            requestAnimationFrame(animateBackground);
+        }
+        animateBackground();
+
+        // Resize handling
+        window.addEventListener('resize', () => {
+            bgCanvas.width = window.innerWidth;
+            bgCanvas.height = window.innerHeight;
+        });
+
+        // Snow overlay effect
+        function initSnowOverlay() {
+            const snowCanvas = document.getElementById('snow-overlay');
+            const ctx = snowCanvas.getContext('2d');
+            snowCanvas.width = window.innerWidth;
+            snowCanvas.height = window.innerHeight;
+
+            // Create snow particles covering the screen
+            const snowParticles = [];
+            const particleCount = 8000;
+            
+            for (let i = 0; i < particleCount; i++) {
+                snowParticles.push({
+                    x: Math.random() * snowCanvas.width,
+                    y: Math.random() * snowCanvas.height,
+                    radius: Math.random() * 2.5 + 1,
+                    opacity: Math.random() * 0.6 + 0.4
+                });
+            }
+
+            function drawSnow() {
+                ctx.clearRect(0, 0, snowCanvas.width, snowCanvas.height);
+                snowParticles.forEach(p => {
+                    ctx.fillStyle = `rgba(255, 255, 255, ${p.opacity})`;
+                    ctx.beginPath();
+                    ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+                    ctx.fill();
+                });
+            }
+
+            drawSnow();
+
+            // Click/tap to blast snow away
+            snowCanvas.addEventListener('click', (e) => {
+                const rect = snowCanvas.getBoundingClientRect();
+                const clickX = e.clientX - rect.left;
+                const clickY = e.clientY - rect.top;
+                const blastRadius = 80;
+
+                // Remove snow particles in blast radius
+                for (let i = snowParticles.length - 1; i >= 0; i--) {
+                    const p = snowParticles[i];
+                    const dx = p.x - clickX;
+                    const dy = p.y - clickY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < blastRadius) {
+                        // Create flying snowflake particles
+                        createSnowflakeExplosion(clickX, clickY, p.x, p.y);
+                        snowParticles.splice(i, 1);
+                    }
+                }
+
+                drawSnow();
+            });
+
+            // Touch support for mobile
+            snowCanvas.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                const touch = e.touches[0];
+                const rect = snowCanvas.getBoundingClientRect();
+                const clickX = touch.clientX - rect.left;
+                const clickY = touch.clientY - rect.top;
+                const blastRadius = 80;
+
+                for (let i = snowParticles.length - 1; i >= 0; i--) {
+                    const p = snowParticles[i];
+                    const dx = p.x - clickX;
+                    const dy = p.y - clickY;
+                    const distance = Math.sqrt(dx * dx + dy * dy);
+
+                    if (distance < blastRadius) {
+                        createSnowflakeExplosion(clickX, clickY, p.x, p.y);
+                        snowParticles.splice(i, 1);
+                    }
+                }
+
+                drawSnow();
+            });
+        }
+
+        function createSnowflakeExplosion(centerX, centerY, particleX, particleY) {
+            const snowflake = document.createElement('div');
+            snowflake.className = 'snowflake-particle';
+            snowflake.textContent = '❄';
+            snowflake.style.left = particleX + 'px';
+            snowflake.style.top = particleY + 'px';
+            
+            const angle = Math.atan2(particleY - centerY, particleX - centerX);
+            const distance = 150 + Math.random() * 100;
+            const tx = Math.cos(angle) * distance;
+            const ty = Math.sin(angle) * distance;
+            
+            snowflake.style.setProperty('--tx', tx + 'px');
+            snowflake.style.setProperty('--ty', ty + 'px');
+            
+            document.body.appendChild(snowflake);
+            
+            setTimeout(() => snowflake.remove(), 1000);
+        }
+    </script>
 </body>
 </html>
