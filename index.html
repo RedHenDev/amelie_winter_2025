@@ -33,37 +33,52 @@
         }
 
         h1 {
-            font-size: 3rem;
+            font-size: clamp(1.5rem, 5vw, 3rem);
             margin-bottom: 1rem;
             text-shadow: 0 0 10px #fff;
         }
 
+        p {
+            font-size: clamp(0.9rem, 2.5vw, 1.1rem);
+            padding: 0 1rem;
+        }
+
         #movie-list {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-            gap: 1rem;
-            margin: 2rem auto;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 0.75rem;
+            margin: 1rem auto;
             max-width: 1200px;
-            max-height: 60vh;
+            max-height: 50vh;
             overflow-y: auto;
             padding: 1rem;
             background: rgba(0,0,0,0.5);
             border-radius: 20px;
         }
 
+        @media (max-width: 768px) {
+            #movie-list {
+                grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+                gap: 0.5rem;
+                padding: 0.75rem;
+                max-height: 45vh;
+            }
+        }
+
         .movie-card {
             background: rgba(255, 255, 255, 0.1);
             border-radius: 15px;
-            padding: 1rem;
+            padding: 0.75rem;
             cursor: pointer;
             transition: all 0.3s;
             backdrop-filter: blur(5px);
             border: 2px solid transparent;
-        }
-
-        .movie-card:hover {
-            transform: scale(1.05);
-            background: rgba(255, 255, 255, 0.2);
+            font-size: clamp(0.85rem, 2vw, 1rem);
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
         }
 
         .movie-card.selected {
@@ -72,22 +87,54 @@
             box-shadow: 0 0 20px #0f0;
         }
 
+        @media (hover: hover) {
+            .movie-card:hover {
+                transform: scale(1.05);
+                background: rgba(255, 255, 255, 0.2);
+            }
+        }
+
+        @media (hover: none) {
+            .movie-card:active {
+                background: rgba(255, 255, 255, 0.2);
+            }
+        }
+
         button {
             background: #c00;
             color: white;
             border: none;
-            padding: 1rem 2rem;
-            font-size: 1.5rem;
+            padding: clamp(0.75rem, 2vw, 1rem) clamp(1.5rem, 4vw, 2rem);
+            font-size: clamp(1.1rem, 3vw, 1.5rem);
             border-radius: 50px;
             cursor: pointer;
-            margin: 2rem;
+            margin: 1rem;
             box-shadow: 0 5px 15px rgba(0,0,0,0.5);
             transition: all 0.3s;
+            width: auto;
+            max-width: 90%;
         }
 
-        button:hover {
-            background: #f00;
-            transform: translateY(-3px);
+        @media (hover: hover) {
+            button:hover {
+                background: #f00;
+                transform: translateY(-3px);
+            }
+
+            .movie-card:hover {
+                transform: scale(1.05);
+                background: rgba(255, 255, 255, 0.2);
+            }
+        }
+
+        @media (hover: none) {
+            button:active {
+                background: #f00;
+            }
+
+            .movie-card:active {
+                background: rgba(255, 255, 255, 0.2);
+            }
         }
 
         button:disabled {
@@ -110,7 +157,7 @@
         }
 
         #movie-title {
-            font-size: 8rem;
+            font-size: clamp(2rem, 10vw, 8rem);
             font-weight: bold;
             color: #ff0000;
             text-shadow: 
@@ -125,6 +172,9 @@
             line-height: 1.2;
             position: relative;
             pointer-events: none;
+            padding: 0 1rem;
+            word-wrap: break-word;
+            max-width: 90vw;
         }
 
         #snow-overlay {
@@ -140,7 +190,7 @@
         .snowflake-particle {
             position: absolute;
             color: white;
-            font-size: 24px;
+            font-size: clamp(16px, 3vw, 24px);
             pointer-events: none;
             animation: snowflake-fall 1s ease-out forwards;
         }
@@ -177,9 +227,11 @@
         }
 
         #reveal-message {
-            font-size: 2.5rem;
+            font-size: clamp(1.2rem, 4vw, 2.5rem);
             margin-top: 2rem;
+            margin-bottom: 1rem;
             opacity: 0.9;
+            padding: 0 1rem;
         }
     </style>
 </head>
@@ -204,7 +256,6 @@
     <script>
         // Family-friendly Christmas movies (updated for 2025)
         const movies = [
-            "The Never Ending Story",
             "Home Alone",
             "Home Alone 2: Lost in New York",
             "The Polar Express",
